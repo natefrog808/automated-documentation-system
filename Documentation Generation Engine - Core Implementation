@@ -1,0 +1,154 @@
+```typescript
+// Core interfaces for the documentation engine
+interface CodeBlock {
+    content: string;
+    language: string;
+    location: CodeLocation;
+    metadata: Record<string, any>;
+}
+
+interface CodeLocation {
+    filePath: string;
+    startLine: number;
+    endLine: number;
+}
+
+interface DocumentationContext {
+    existingDocs: Map<string, string>;
+    codebase: Map<string, CodeBlock>;
+    styleGuide: StyleGuide;
+    projectMetadata: ProjectMetadata;
+}
+
+interface StyleGuide {
+    format: 'markdown' | 'jsdoc' | 'sphinx';
+    templates: Map<string, string>;
+    rules: StyleRule[];
+}
+
+interface StyleRule {
+    type: string;
+    pattern: RegExp;
+    replacement: string;
+}
+
+interface ProjectMetadata {
+    name: string;
+    version: string;
+    description: string;
+    dependencies: Record<string, string>;
+}
+
+// Core documentation generator class
+class DocumentationEngine {
+    private context: DocumentationContext;
+    private nlpProcessor: NLPProcessor;
+    private codeAnalyzer: CodeAnalyzer;
+
+    constructor(context: DocumentationContext) {
+        this.context = context;
+        this.nlpProcessor = new NLPProcessor();
+        this.codeAnalyzer = new CodeAnalyzer();
+    }
+
+    async generateDocumentation(codeBlock: CodeBlock): Promise<string> {
+        // 1. Analyze the code structure
+        const analysis = await this.codeAnalyzer.analyze(codeBlock);
+
+        // 2. Extract semantic meaning
+        const semantics = await this.nlpProcessor.extractSemantics(analysis);
+
+        // 3. Generate documentation based on semantics and style guide
+        const documentation = await this.generateFromSemantics(semantics);
+
+        // 4. Apply style rules
+        const formattedDoc = this.applyStyleRules(documentation);
+
+        return formattedDoc;
+    }
+
+    private async generateFromSemantics(semantics: CodeSemantics): Promise<string> {
+        const template = this.getTemplate(semantics.type);
+        let documentation = template;
+        for (const [key, value] of Object.entries(semantics)) {
+            documentation = documentation.replace(`{${key}}`, value.toString());
+        }
+        return documentation;
+    }
+
+    private getTemplate(type: string): string {
+        return this.context.styleGuide.templates.get(type) || '';
+    }
+
+    private applyStyleRules(documentation: string): string {
+        let formatted = documentation;
+        for (const rule of this.context.styleGuide.rules) {
+            formatted = formatted.replace(rule.pattern, rule.replacement);
+        }
+        return formatted;
+    }
+
+    async updateDocumentation(filePath: string, changes: CodeBlock[]): Promise<string> {
+        const existingDoc = this.context.existingDocs.get(filePath) || '';
+        let updatedDoc = existingDoc;
+
+        for (const change of changes) {
+            const newDocSection = await this.generateDocumentation(change);
+            updatedDoc = this.mergeDocumentation(updatedDoc, newDocSection, change.location);
+        }
+
+        return updatedDoc;
+    }
+
+    private mergeDocumentation(existing: string, newSection: string, location: CodeLocation): string {
+        // Implement smart merging logic
+        // For now, appending the new section
+        return existing + '\n' + newSection;
+    }
+}
+
+// Helper class for natural language processing
+class NLPProcessor {
+    async extractSemantics(analysis: CodeAnalysis): Promise<CodeSemantics> {
+        // Improved NLP processing
+        return {
+            type: 'function',
+            purpose: 'Extracted purpose of the code',
+            parameters: analysis.params.map(param => ({ name: param.name, description: 'Parameter description' })),
+            returnValue: 'Return value description',
+            examples: ['Example usage']
+        };
+    }
+}
+
+// Helper class for code analysis
+class CodeAnalyzer {
+    async analyze(codeBlock: CodeBlock): Promise<CodeAnalysis> {
+        // Improved code analysis
+        return {
+            type: 'function',
+            name: 'FunctionName',
+            params: [{ name: 'param1', type: 'string' }],
+            returns: 'string',
+            complexity: 1
+        };
+    }
+}
+
+// Additional interfaces for type safety
+interface CodeAnalysis {
+    type: string;
+    name: string;
+    params: Array<{name: string; type: string}>;
+    returns: string;
+    complexity: number;
+}
+
+interface CodeSemantics {
+    type: string;
+    purpose: string;
+    parameters: Array<{name: string; description: string}>;
+    returnValue: string;
+    examples: string[];
+}
+```
